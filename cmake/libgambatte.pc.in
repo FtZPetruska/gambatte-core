@@ -7,6 +7,7 @@ Name: libgambatte
 Description: The gambatte emulator core library
 Version: @LIBGAMBATTE_REVISION@
 Cflags: -I${includedir}/gambatte
-Libs: -L${libdir} -lgambatte
+Libs: -L${libdir} -lgambatte @LIBGAMBATTE_PC_LIBS@
+Libs.private: @LIBGAMBATTE_PC_LIBS_PRIVATE@
 Requires: @LIBGAMBATTE_PC_REQUIRES@
 Requires.private: @LIBGAMBATTE_PC_REQUIRES_PRIVATE@

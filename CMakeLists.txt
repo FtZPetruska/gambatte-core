@@ -77,13 +77,6 @@ set(LIBGAMBATTE_SOURCES
   "libgambatte/src/mem/mbc/mmm01.cpp"
   "libgambatte/src/mem/mbc/pocket_camera.cpp"
   "libgambatte/src/mem/mbc/wisdom_tree.cpp"
-  "libgambatte/src/mem/snes_spc/dsp.cpp"
-  "libgambatte/src/mem/snes_spc/SNES_SPC.cpp"
-  "libgambatte/src/mem/snes_spc/SNES_SPC_misc.cpp"
-  "libgambatte/src/mem/snes_spc/SNES_SPC_state.cpp"
-  "libgambatte/src/mem/snes_spc/spc.cpp"
-  "libgambatte/src/mem/snes_spc/SPC_DSP.cpp"
-  "libgambatte/src/mem/snes_spc/SPC_Filter.cpp"
   "libgambatte/src/sound/channel1.cpp"
   "libgambatte/src/sound/channel2.cpp"
   "libgambatte/src/sound/channel3.cpp"
@@ -96,6 +89,16 @@ set(LIBGAMBATTE_SOURCES
   "libgambatte/src/video/next_m0_time.cpp"
   "libgambatte/src/video/ppu.cpp"
   "libgambatte/src/video/sprite_mapper.cpp"
+)
+
+set(LIBGAMBATTE_SNES_SPC_SOURCES
+  "libgambatte/src/mem/snes_spc/dsp.cpp"
+  "libgambatte/src/mem/snes_spc/SNES_SPC.cpp"
+  "libgambatte/src/mem/snes_spc/SNES_SPC_misc.cpp"
+  "libgambatte/src/mem/snes_spc/SNES_SPC_state.cpp"
+  "libgambatte/src/mem/snes_spc/spc.cpp"
+  "libgambatte/src/mem/snes_spc/SPC_DSP.cpp"
+  "libgambatte/src/mem/snes_spc/SPC_Filter.cpp"
 )
 
 file(GLOB LIBGAMBATTE_PUBLIC_HEADERS "libgambatte/include/*.h")
@@ -155,6 +158,20 @@ configure_file(
   "${libgambatte_BINARY_DIR}/include/gambatte/config.h"
 )
 
+add_library(libgambatte-snes-spc STATIC ${LIBGAMBATTE_SNES_SPC_SOURCES})
+set_target_properties(libgambatte-snes-spc PROPERTIES
+  CXX_STANDARD 11
+  CXX_STANDARD_REQUIRED TRUE
+  CXX_EXTENSIONS OFF
+  POSITION_INDEPENDENT_CODE TRUE
+  OUTPUT_NAME "gambatte-snes-spc"
+)
+target_include_directories(libgambatte-snes-spc
+  PRIVATE
+  "${libgambatte_BINARY_DIR}/include/gambatte"
+  "${LIBGAMBATTE_COMMON_PRIVATE_HEADERS}"
+)
+
 if(LIBGAMBATTE_BUILD_SHARED)
   add_library(libgambatte-shared SHARED ${LIBGAMBATTE_SOURCES} "libgambatte/src/cinterface.cpp")
   add_library(libgambatte::libgambatte-shared ALIAS libgambatte-shared)
@@ -165,6 +182,11 @@ if(LIBGAMBATTE_BUILD_STATIC)
   add_library(libgambatte-static STATIC ${LIBGAMBATTE_SOURCES})
   add_library(libgambatte::libgambatte-static ALIAS libgambatte-static)
   list(APPEND LIBGAMBATTE_TARGETS libgambatte-static)
+
+  install(TARGETS libgambatte-snes-spc
+    EXPORT "libgambatte-static-target"
+    ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  )
 endif()
 
 set_target_properties(${LIBGAMBATTE_TARGETS} PROPERTIES
@@ -195,6 +217,8 @@ foreach(_target IN LISTS LIBGAMBATTE_TARGETS)
   if(LIBGAMBATTE_SUPPORT_ZIP)
     target_link_libraries(${_target} PRIVATE ZLIB::ZLIB)
   endif()
+
+  target_link_libraries(${_target} PRIVATE libgambatte-snes-spc)
 
   install(TARGETS ${_target}
     EXPORT "${_target}-target"
@@ -250,8 +274,16 @@ configure_file(
 unset(PACKAGE_INIT)
 
 # Create and install a pkg-config file
+set(LIBGAMBATTE_PC_LIBS)
+set(LIBGAMBATTE_PC_LIBS_PRIVATE)
 set(LIBGAMBATTE_PC_REQUIRES)
 set(LIBGAMBATTE_PC_REQUIRES_PRIVATE)
+
+if(NOT LIBGAMBATTE_BUILD_SHARED)
+  list(APPEND LIBGAMBATTE_PC_LIBS "-lgambatte-snes-spc")
+else()
+  list(APPEND LIBGAMBATTE_PC_LIBS_PRIVATE "-lgambatte-snes-spc")
+endif()
 
 if(LIBGAMBATTE_SUPPORT_ZIP)
   # Make it a public dependency if only static is built
